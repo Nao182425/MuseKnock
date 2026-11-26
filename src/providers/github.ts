@@ -72,6 +72,8 @@ export async function github(
       throw new HTTPException(400, { message: 'Invalid GitHub ping' })
     return { response }
   }
+  // Push events fire on every commit and drown the chat. The AI Bridge only needs issue_comment.
+  if (type === 'push') return { response }
   const schema = summaries.get(type)
   if (!schema) return { response }
   const summary = schema.safeParse(payload)
