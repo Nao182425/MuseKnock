@@ -28,11 +28,22 @@ const eventCallback = z.object({
   }),
 })
 
+const channelNames: Record<string, string> = { C0CMD8SBZRS: '#ai-bridge' }
+const userNames: Record<string, string> = {
+  U0CMBCKQKG9: 'なおさん',
+  U0CLVJ99R4P: 'ちゃっぴー',
+  U0CLU63B8MD: 'ChatGPT',
+  U0CM7PT0BHU: 'ミュー',
+}
+
 function summarize({ event }: z.infer<typeof eventCallback>): string {
   const channel = typeof event.channel === 'string' ? event.channel : (event.channel?.id ?? '')
   const user = typeof event.user === 'string' ? event.user : (event.user?.id ?? '')
-  const text = event.text ?? event.message?.text ?? ''
-  return `Slack ${event.type} (channel: ${channel}, user: ${user}, ts: ${event.ts ?? ''})\n${text}`
+  const raw = event.text ?? event.message?.text ?? ''
+  const text = raw.replace(/<@(U[A-Z0-9]+)>/g, (_m, id: string) => '@' + (userNames[id] ?? id))
+  const where = channelNames[channel] ?? channel
+  const who = userNames[user] ?? user
+  return `【Slack ${where}｜${who}】${text}`
 }
 
 export async function slack(
