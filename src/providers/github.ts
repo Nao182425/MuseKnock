@@ -78,7 +78,12 @@ export async function github(
   if (!schema) return { response }
   const summary = schema.safeParse(payload)
   if (!summary.success) throw new HTTPException(400, { message: 'Invalid GitHub event payload' })
-  let text = JSON.stringify(summary.data)
+  let text = `${summary.data.repository.full_name} で ${type} イベント`
+  const d = summary.data as unknown as Record<string, any>
+  if (type === 'issues') text = `Issue「${d.issue.title}」(#${d.issue.number}) が ${d.action}\n${d.issue.html_url}`
+  else if (type === 'pull_request') text = `PR「${d.pull_request.title}」(#${d.pull_request.number}) が ${d.action}\n${d.pull_request.html_url}`
+  else if (type === 'release') text = `リリース ${d.release.tag_name}${d.release.name ? ' ' + d.release.name : ''}\n${d.release.html_url}`
+  else if (type === 'workflow_run') text = `ワークフロー ${d.workflow_run.name ?? ''} が ${d.workflow_run.status}${d.workflow_run.conclusion ? '（' + d.workflow_run.conclusion + '）' : ''}\n${d.workflow_run.html_url}`
   if (type === 'issue_comment') {
     const parsed = issueComment.parse(summary.data)
     // Muse's own Bridge posts need no notification. The patrol ledger already tracks them.
