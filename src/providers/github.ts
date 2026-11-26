@@ -36,17 +36,18 @@ const summaries = new Map<string, z.ZodType>(
         html_url: z.string(),
       }),
     }),
-    issue_comment: action.extend({
-      issue: item,
-      comment: z.object({
-        id: z.number(),
-        body: z.string(),
-        html_url: z.string(),
-        user: z.object({ login: z.string() }).nullish(),
-      }),
-    }),
+    issue_comment: issueComment,
   }),
 )
+const issueComment = action.extend({
+  issue: item,
+  comment: z.object({
+    id: z.number(),
+    body: z.string(),
+    html_url: z.string(),
+    user: z.object({ login: z.string() }).nullish(),
+  }),
+})
 const ping = z.object({ zen: z.string() })
 
 export async function github(
@@ -75,7 +76,15 @@ export async function github(
   if (!schema) return { response }
   const summary = schema.safeParse(payload)
   if (!summary.success) throw new HTTPException(400, { message: 'Invalid GitHub event payload' })
+  let text = JSON.stringify(summary.data)
+  if (type === 'issue_comment') {
+    const parsed = issueComment.parse(summary.data)
+    // Muse's own Bridge posts need no notification. The patrol ledger already tracks them.
+    if (/^\[AI-BRIDGE v1\]\nID: [^\n]+\nFROM: MUSE\n/.test(parsed.comment.body)) return { response }
+    text = `${parsed.issue.title} (#${parsed.issue.number}) への新しいコメント\n\n${parsed.comment.body}\n\n${parsed.comment.html_url}`
+  }
   // GitHub signs only the body. Changing a delivery ID on a replay must not create another event.
   const key = Buffer.from(await crypto.subtle.digest('SHA-256', body)).toString('hex')
-  return { events: [{ key, type, text: JSON.stringify(summary.data) }], response }
+  return { events: [{ key, type, text }], response }
 }
+
