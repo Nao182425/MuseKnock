@@ -28,22 +28,11 @@ const eventCallback = z.object({
   }),
 })
 
-function summarize({ team_id, event }: z.infer<typeof eventCallback>): string {
-  const fields = { team_id, ...event }
-  const encoder = new TextEncoder()
-  let json = JSON.stringify(fields)
-  for (
-    let limit = 4_000;
-    encoder.encode(json).byteLength > maxEventBytes;
-    limit = Math.floor(limit / 2)
-  ) {
-    json = JSON.stringify({ ...fields, truncated: true }, (_key, value: unknown) =>
-      typeof value === 'string' && value.length > limit
-        ? Array.from(value).slice(0, limit).join('')
-        : value,
-    )
-  }
-  return json
+function summarize({ event }: z.infer<typeof eventCallback>): string {
+  const channel = typeof event.channel === 'string' ? event.channel : (event.channel?.id ?? '')
+  const user = typeof event.user === 'string' ? event.user : (event.user?.id ?? '')
+  const text = event.text ?? event.message?.text ?? ''
+  return `Slack ${event.type} (channel: ${channel}, user: ${user}, ts: ${event.ts ?? ''})\n${text}`
 }
 
 export async function slack(
