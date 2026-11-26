@@ -36,6 +36,15 @@ const summaries = new Map<string, z.ZodType>(
         html_url: z.string(),
       }),
     }),
+    issue_comment: action.extend({
+      issue: item,
+      comment: z.object({
+        id: z.number(),
+        body: z.string(),
+        html_url: z.string(),
+        user: z.object({ login: z.string() }).nullish(),
+      }),
+    }),
   }),
 )
 const ping = z.object({ zen: z.string() })
