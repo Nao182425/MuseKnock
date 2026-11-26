@@ -76,6 +76,9 @@ export async function slack(
   const parsed = eventCallback.safeParse(json)
   if (!parsed.success) throw new HTTPException(400, { message: 'Invalid Slack event callback' })
   const { event_id, team_id, event } = parsed.data
+  const actor = typeof event.user === 'string' ? event.user : event.user?.id
+  // Do not notify Muse about the Myu bot's own posts, or it would talk to itself.
+  if (actor === 'U0CM7PT0BHU') return { response }
   const channel = typeof event.channel === 'string' ? event.channel : event.channel?.id
   const deleted = event.type === 'message' && event.subtype === 'message_deleted'
   const ts = deleted ? event.deleted_ts : event.message?.ts ?? event.ts
