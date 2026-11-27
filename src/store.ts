@@ -229,7 +229,8 @@ export class DeliveryQueue {
         if (grouped) return { ...grouped, duplicate: true }
       }
 
-      const target = this.getActiveSideChat()
+      // Slack room traffic goes to the chat registered as "slack" when one exists.
+      const target = (event.source === 'slack' ? this.getSideChat('slack') : undefined) ?? this.getActiveSideChat()
       if (!target) return { noDestination: true }
 
       const { count } = this.sql
